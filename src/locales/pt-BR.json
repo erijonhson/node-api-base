@@ -1,0 +1,8 @@
+{
+	"hello": "olá",
+	"user_unauthorized": "Usuário não autorizado",
+	"invalid_email": "E-mail inválido",
+	"entity_post_error": "Erro ao criar Entidade",
+	"entity_not_found": "Entidade não encontrada",
+	"entity_put_error": "Erro ao atualizar Entidade"
+}

@@ -1,0 +1,8 @@
+{
+	"hello": "Hello",
+	"user_unauthorized": "User unauthorized",
+	"invalid_email": "Invalid e-mail",
+	"entity_post_error": "Entity post error",
+	"entity_not_found": "Entity not found",
+	"entity_put_error": "Entity put error"
+}
