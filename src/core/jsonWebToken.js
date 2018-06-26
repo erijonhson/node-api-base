@@ -27,15 +27,21 @@ module.exports = {
   },
 
   authenticateSocket: (request) => {
-    let decoded = jwt.verify(request.headers.authorization, config.get('jwtSecret'));
-    return global.findUserById(decoded.id).then((user) => {
-      if (user) {
-        return user.data;
-      } else {
-        throw new Error(global.__('user_unauthorized'));
+    return new Promise((resolve, reject) => {
+      try {
+        let decoded = jwt.verify(request.headers.authorization, config.get('jwtSecret'));
+        return global.findUserById(decoded.id).then((user) => {
+          if (user) {
+            resolve(user.data);
+          } else {
+            throw new Error(global.__('user_unauthorized'));
+          }
+        }).catch(() => {
+          throw new Error(global.__('user_unauthorized'));
+        });
+      } catch(err) {
+        reject(err);
       }
-    }).catch(() => {
-      throw new Error(global.__('user_unauthorized'));
     });
   }
 };
