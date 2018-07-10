@@ -19,7 +19,7 @@ if (process.env.NODE_ENV !== 'production') {
   corsOptions = {
     origin: '*',
     allowedHeaders: ['Accept-Version', 'Access-Control-Expose-Headers', 'Authorization', 'Credentials', 'Content-Type'],
-    exposedHeaders: ['X-Request-Id', 'X-Pagination-Total-Count', 'X-Pagination-Per-Page', 'X-Pagination-Current-Page', 'X-Pagination-Page-Count'],
+    exposedHeaders: ['Authorization', 'X-Request-Id', 'X-Pagination-Total-Count', 'X-Pagination-Per-Page', 'X-Pagination-Current-Page', 'X-Pagination-Page-Count'],
   };
 }
 
