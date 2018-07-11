@@ -1,5 +1,6 @@
 const models = require('../../models');
 const bcrypt = require('bcrypt');
+const omitEmpty = require('omit-empty');
 
 module.exports = {
   verifyCredentialsAsync: (email, password) => {
@@ -26,13 +27,12 @@ module.exports = {
   },
 
   updateAsync: (id, data) => {
-    let user = new models.User(data);
-    return user.validate().then(() => {
-      delete user.dataValues.id;
-      return models.User.update(user.dataValues, {where: {id}})
-        .then(result => {
-          return result[0];
-        });
-    });
+    delete data.id;
+    const user = omitEmpty(data);
+    return models.User.update(user, {where: {id}})
+      .then(result => {
+        const isWork = result[0];
+        return isWork;
+      });
   }
 };
