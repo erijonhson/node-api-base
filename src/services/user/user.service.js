@@ -8,7 +8,7 @@ module.exports = {
         if (data) {
           const isValidPassword = bcrypt.compareSync(password, data.password);
           if (isValidPassword) {
-            return { id: data.id };
+            return data;
           }
         }
         return false;

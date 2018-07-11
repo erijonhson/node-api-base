@@ -11,10 +11,11 @@ module.exports = {
    * To use JWT authentication implemented by this core, you must implement a global method called findUserById, 
    * which returns JSON in the form {date: {your: data}}
    */
-  authenticate: (req, res, next) => {
+  authenticate: async (req, res, next) => {
     try {
-      let decoded = jwt.verify(req.get('Authorization'), config.get('jwtSecret'));
-      let user = global.findUserById(decoded.id);
+      const token = req.get('Authorization') || req.get('authorization');
+      let decoded = jwt.verify(token, config.get('jwtSecret'));
+      let user = await global.findUserById(decoded.id);
       if (user) {
         req.user = user.data;
         next();
@@ -29,7 +30,8 @@ module.exports = {
   authenticateSocket: (request) => {
     return new Promise((resolve, reject) => {
       try {
-        let decoded = jwt.verify(request.headers.authorization, config.get('jwtSecret'));
+        const token = request.headers.authorization || request.headers.Authorization;
+        let decoded = jwt.verify(token, config.get('jwtSecret'));
         return global.findUserById(decoded.id).then((user) => {
           if (user) {
             resolve(user.data);

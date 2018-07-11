@@ -5,7 +5,7 @@ const HttpStatusCodes = require('http-status-codes');
 module.exports = (app) => {
   /**
    * @swagger
-   * /users/token:
+   * /users/login:
    *   post:
    *     tags:
    *       - Users
@@ -33,22 +33,30 @@ module.exports = (app) => {
    *     responses:
    *       200:
    *         description: OK
-   *         headers:
-   *           token:
-   *            type: string
-   *            description: token auth
    *         schema: 
    *           type: Object
    *           properties: 
-   *             token:
+   *             id:
+   *               type: integer
+   *             name:
    *               type: string
+   *             email:
+   *               type: string
+   *             createdAt:
+   *               type: date
+   *             updatedAt:
+   *               type: date
    *           example: {
-   *             "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.KnEu3gcxllBIxfmOrkWjMPBF06exTeLDURXcFqN6gUw"
+   *             "id": 1,
+   *             "name": "user",
+   *             "email": "user@user.user",
+   *             "createdAt": "2018-01-02T20:14:22.527Z",
+   *             "updatedAt": "2018-01-02T20:14:22.527Z"
    *           }
-   *       default:
-   *         description: Error creating User
+   *       404:
+   *         description: Not Found
    */
-  app.post('/token', async (req, res) => {
+  app.post('/login', async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     const user = await userService.verifyCredentialsAsync(email, password);
@@ -56,8 +64,9 @@ module.exports = (app) => {
       return res.status(HttpStatusCodes.NOT_FOUND).send();
     }
     const token = jsonWebToken.generateToken(user.id);
-    res.set('token', token);
-    res.json({ token });
+    res.set('Authorization', token);
+    delete user.password;
+    res.status(HttpStatusCodes.OK).json(user);
   });
 
   /**
@@ -107,8 +116,8 @@ module.exports = (app) => {
    */
   app.post('/', async (req, res) => {
     try {
-      await userService.createAsync(req.body);
-      res.set('Location', 'secret');
+      const user = await userService.createAsync(req.body);
+      res.set('Location', `${req.baseUrl}/${user.id}`);
       return res.status(HttpStatusCodes.CREATED).send();
     } catch (err) {
       return res.status(HttpStatusCodes.NOT_ACCEPTABLE).json((err && err.message) || global.__('user_unauthorized'));
@@ -117,44 +126,32 @@ module.exports = (app) => {
 
   /**
    * @swagger
-   * /users/test:
+   * /users/refresh:
    *   get:
    *     tags:
    *       - Users
-   *     summary: Simple authentication test
+   *     summary: Validate user token
    *     consumes:
    *       - application/json
    *     responses:
-   *       200:
-   *         description: OK
-   *         schema: 
-   *           type: Object
-   *           properties: 
-   *             status:
-   *               type: string
-   *           example: {
-   *             "status": "Autorizado com sucesso!"
-   *           }
+   *       204:
+   *         description: NO CONTENT
    *       401:
    *         description: Unauthorized
    */
-  app.get('/test', jsonWebToken.authenticate, async (req, res) => {
-    res.status(HttpStatusCodes.OK).json({status: 'Autorizado com sucesso!'});
+  app.get('/refresh', jsonWebToken.authenticate, async (req, res) => {
+    res.status(HttpStatusCodes.NO_CONTENT).send();
   });
 
   /**
    * @swagger
-   * /users/{id}:
+   * /users:
    *   get:
    *     tags:
    *       - Users
    *     summary: Show an User
    *     consumes:
    *       - application/json
-   *     parameters:
-   *       - name: id
-   *         in: path
-   *         required: true
    *     responses:
    *       200:
    *         description: OK
@@ -177,19 +174,66 @@ module.exports = (app) => {
    *             "id": 1,
    *             "name": "user",
    *             "email": "user@user.user",
-   *             "password": "eysdaslkdjlaksj.asdasfsgfrsgdfsgdfg",
    *             "createdAt": "2018-01-02T20:14:22.527Z",
    *             "updatedAt": "2018-01-02T20:14:22.527Z"
    *           }
    *       404: 
    *         description: User not found
    */
-  app.get('/:id', async (req, res) => {
-    const id = req.params.id;
-    let user = await userService.showAsync(id);
-    if (!user) {
-      return res.status(HttpStatusCodes.NOT_FOUND).send();
+  app.get('/', jsonWebToken.authenticate, async (req, res) => {
+    delete req.user.password;
+    return res.json(req.user);
+  });
+
+  /**
+   * @swagger
+   * /users:
+   *   put:
+   *     tags:
+   *       - Users
+   *     summary: Updates an User
+   *     consumes:
+   *       - application/json
+   *     parameters:
+   *       - name: authorization
+   *         in: header
+   *       - name: body
+   *         in: body
+   *         schema:
+   *           type: object
+   *           properties:
+   *             name:
+   *               type: string
+   *             password:
+   *               type: string
+   *           example: {
+   *             "name": "user",
+   *             "password": "1234"
+   *           }
+   *     responses:
+   *       204:
+   *         description: NO CONTENT
+   *       404:
+   *         description: User not found
+   *       406:
+   *         description: Error updating User
+   */
+  app.put('/', jsonWebToken.authenticate, async (req, res) => {
+    try {
+      const name = req.body.name;
+      const password = req.body.password;
+
+      const user = {
+        name, password
+      };
+
+      const updatedUser = await userService.updateAsync(req.user.id, user);
+      if (!updatedUser) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json(global.__('user_not_found'));
+      }
+      return res.status(HttpStatusCodes.NO_CONTENT).send();
+    } catch (err) {
+      return res.status(HttpStatusCodes.NOT_ACCEPTABLE).json((err && err.message) || global.__('user_put_error'));
     }
-    return res.json(user);
   });
 };
