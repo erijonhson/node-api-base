@@ -2,9 +2,11 @@ const jwt = require('jsonwebtoken');
 const config = require('config');
 const HttpStatusCodes = require('http-status-codes');
 
+const secretKey = Buffer.from(config.get('jwtSecret')).toString('base64');
+
 module.exports = {
   generateToken: (id) => {
-    return jwt.sign({ id }, config.get('jwtSecret'), { expiresIn: '7d' });
+    return jwt.sign({ id }, secretKey, { expiresIn: '7d' });
   },
 
   /**
@@ -14,7 +16,7 @@ module.exports = {
   authenticate: async (req, res, next) => {
     try {
       const token = req.get('Authorization') || req.get('authorization');
-      let decoded = jwt.verify(token, config.get('jwtSecret'));
+      let decoded = jwt.verify(token, secretKey);
       let user = await global.findUserById(decoded.id);
       if (user) {
         req.user = user.data;
@@ -31,7 +33,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       try {
         const token = request.headers.authorization || request.headers.Authorization;
-        let decoded = jwt.verify(token, config.get('jwtSecret'));
+        let decoded = jwt.verify(token, secretKey);
         return global.findUserById(decoded.id).then((user) => {
           if (user) {
             resolve(user.data);
